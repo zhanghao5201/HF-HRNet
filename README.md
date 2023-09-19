@@ -18,7 +18,9 @@ The trade-off between inference time and AP on COCO val set for several SOTA mod
 Note that ``Dynamic Kernel Aggregation" cannot be supported by NPU, we replace it with Squeeze-and-Excitation block when we measure the delay time on NPU.
 <p align="center">
     <img src='fig/npusudu.jpg' width=900/>
+    <figcaption>(a)</figcaption>
     <img src='fig/gpusudu.jpg' width=900/>
+    <figcaption>(b)</figcaption>
 </p>
 
 
