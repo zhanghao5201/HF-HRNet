@@ -17,8 +17,8 @@ It is noteworthy that on the COCO test-dev set, HF-HRNet-30 outperforms Dite-HRN
 The trade-off between inference time and AP on COCO val set for several SOTA models. (a) Delay Time (ms) w/ AP tested on NPU (RK3588). (b) Samples Per Second (SPS) w/ AP tested on GPU (NVIDIA A100-SXM-80GB). 
 Note that ``Dynamic Kernel Aggregation" cannot be supported by NPU, we replace it with Squeeze-and-Excitation block when we measure the delay time on NPU.
 <p align="center">
-    <img src='figs/npusudu.pdf' width=900/>
-    <img src='figs/gpusudu.pdf' width=900/>
+    <img src='fig/npusudu.pdf' width=900/>
+    <img src='fig/gpusudu.pdf' width=900/>
 </p>
 
 
