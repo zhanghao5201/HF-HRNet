@@ -1,8 +1,3 @@
-# ------------------------------------------------------------------------------
-# Adapted from https://github.com/HRNet/Lite-HRNet
-# Original licence: Apache License 2.0.
-# ------------------------------------------------------------------------------
-
 import mmcv
 import torch
 import torch.nn as nn
@@ -165,25 +160,23 @@ class MASBlock(nn.Module):
         ])
         self.global1=nn.ModuleList([
         nn.Sequential(
-                nn.AdaptiveAvgPool2d(1),
+                nn.AvgPool2d(3, stride=(2,2),padding=1), 
                 nn.Conv2d(channel, channel, kernel_size=1, bias=False) ,
             ) for channel in branch_channels])
-         
+        
+              
         self.depthwise_convslast = nn.ModuleList([ConvBN(in_channels=channel, out_channels=channel, kernel_size=3, stride=self.stride, padding=1, 
         dilation=1, groups=channel, num_kernels=channel )for channel in branch_channels
         ])
         self.global2=nn.ModuleList([
         nn.Sequential(
-                nn.AdaptiveAvgPool2d(1),
-                nn.Conv2d(channel, channel, kernel_size=1, bias=False) ,   
+                nn.AvgPool2d(3, stride=(2,2),padding=1), 
+                nn.Conv2d(channel, channel, kernel_size=1, bias=False) ,
             ) for channel in branch_channels])
         
-        self.shift_dim1 =[]
-        self.shift_dim2 =[]
-        for channel in branch_channels:            
-            self.shift_dim1.append((channel//4,channel-(channel//4)))
-           
-        self.map1=nn.ParameterList([nn.Parameter(torch.ones(1,channel,1,1),requires_grad=True) for channel in branch_channels])
+       
+        self.up1=nn.ModuleList([nn.Upsample(scale_factor=(2,2), mode='nearest') for channel in branch_channels]) 
+        self.up2=nn.ModuleList([nn.Upsample(scale_factor=(2,2), mode='nearest') for channel in branch_channels])  
         
         
 
@@ -191,23 +184,26 @@ class MASBlock(nn.Module):
 
         def _inner_forward(x):            
             
-            x1 = self.cross_resolution_weighting(x)   
-            x1 = [dw(s) for s,dw in zip(x1,self.depthwise_convsfirst)]
-            #print("hfisfiuhgi")
-            global1 = [ga(s) for s,ga in zip(x1,self.global1)]
-            out2=[]
-            for i,s in enumerate(x1):
-                s_1, s_2 = torch.split(s, dim=1, split_size_or_sections=self.shift_dim1[i])
-                post_s1 = torch.cat((s_2, s_1), dim=1)
-                post_s1=post_s1*self.map1[i]                
-                out2.append(post_s1)  
+            x1 = self.cross_resolution_weighting(x) 
+            #print("k0",x1[0].shape,len(x1))  
+            x1 = [dw(s) for s,dw in zip(x1,self.depthwise_convsfirst)]            
             
-            out2 = [s1+s2 for s1, s2 in zip(out2,global1)] 
+            global1 = [ga(s) for s,ga in zip(x1,self.global1)]
+            
+            
+            global1=[s(ga) for s,ga in zip(self.up1,global1)] 
+            
+            out2 = [s2+s3 for s2,s3 in zip(global1,x1)] 
                        
             x1 = [dw(s) for s, dw in zip(out2, self.depthwise_convslast)]
+            
             global2 = [ga(s) for s,ga in zip(x1,self.global2)]
             
-            out2 = [s1+s2 for s1, s2 in zip(x1,global2)] 
+            
+            global2=[s(ga) for s,ga in zip(self.up2,global2)] 
+            
+            out2 = [s2+s3 for s2,s3 in zip(global2,x1)] 
+            
             out2 = [s1+s2 for s1, s2 in zip(out2,x)] 
             return out2
 
@@ -267,54 +263,49 @@ class ASBlock(nn.Module):
                 
         self.conv2 = nn.Sequential(
                 # dw
-                nn.Conv2d(oup, oup, 3, 1, 1, groups=inp, bias=False),
-                nn.BatchNorm2d(inp),
+                nn.Conv2d(oup, oup, 3, 1, 1, groups=oup, bias=False),
+                nn.BatchNorm2d(oup),
                 nn.ReLU(inplace=True))
         
         self.global1=nn.Sequential(
-                nn.AdaptiveAvgPool2d(1),
-                nn.Conv2d(oup, oup, kernel_size=1, bias=False) , 
-            )
-                
+                nn.AvgPool2d(3, stride=(2,2),padding=1),   
+                nn.Conv2d(oup, oup, kernel_size=1,groups=1, bias=False) ,
+                nn.ReLU(inplace=True)) 
+        
+        self.global2=nn.Sequential(
+                nn.AvgPool2d(3, stride=(2,2),padding=1),   
+                nn.Conv2d(oup, oup, kernel_size=1,groups=1, bias=False) ,
+                nn.ReLU(inplace=True)) 
+        
+        
         self.conv3 = nn.Sequential(
                 # dw
-                nn.Conv2d(oup, oup, 3, stride=2, padding=1, groups=inp, bias=False),
-                nn.BatchNorm2d(inp),
+                nn.Conv2d(oup, oup, 3, stride=2, padding=1, groups=oup, bias=False),
+                nn.BatchNorm2d(oup),
                 )
-                
-        self.global2=nn.Sequential(
-                nn.AdaptiveAvgPool2d(1),
-                nn.Conv2d(oup, oup, kernel_size=1, bias=False),  
-            )    
-            
-                
-
-
+        self.up1=nn.Upsample(scale_factor=(2,2), mode='nearest')   
+        self.up2=nn.Upsample(scale_factor=(2,2), mode='nearest')             
     def forward(self, x):
-        #print("jiosfjio",x.shape)
         out = self.conv1(x)
-        #print(out.shape,"hdiiiiiiiiiiiiiiii")
         xdown=self.dwonsample(x)
-        #print(out.shape,"jdii")
         
         out=self.conv2(out) 
-        global1=self.global1(out)        
-          
-        s_1, s_2 = torch.split(out, dim=1, split_size_or_sections=self.shift_dim1)
-                                     
-        post_s1 = torch.cat((s_2, s_1), dim=1)
-        post_s1=post_s1*self.maps1
-        out=post_s1
-        out=out+global1
+        #print(out.shape)
+        global1=self.global1(out)  #torch.Size([1, 48, 128, 96])
+               
+        global1=self.up1(global1)
+        out=global1+out
+        #print("out",kd)
         
-        out=self.conv3(out) 
-        global2=self.global2(out) 
-        
-        out=out+global2  
-        
-        out=out + xdown
+        out=self.conv3(out)
+        global2=self.global2(out)  #torch.Size([1, 48, 128, 96])
+       
+        global2=self.up2(global2) 
+        out=global2+out+ xdown
         return out
-        
+def _upsample( x, y):
+        _,_,h,w = y.size()
+        return F.interpolate(x, size=(h, w), mode='bilinear', align_corners=True)     
         
 class Stem(nn.Module):
     """Stem network block.
@@ -612,7 +603,9 @@ class HF_HRModule(nn.Module):
                     else:
                         y += self.fuse_layers[i][j](out[j])
                 out_fuse.append(self.relu(y))
+            
             out = out_fuse
+        #print("jsk",len(out),out[0].shape)
         if not self.multiscale_output:
             out = [out[0]]
         return out
@@ -858,7 +851,7 @@ class HF_HRNet(nn.Module):
         x = y_list
         if self.with_head:
             x = self.head_layer(x)
-
+        #print("l",x[0].shape,x[1].shape,x[2].shape,x[3].shape)# torch.Size([1, 60, 64, 64]) torch.Size([1, 60, 32, 32]) torch.Size([1, 120, 16, 16]) torch.Size([1, 240, 8, 8])
         return [x[0]]
 
     def train(self, mode=True):
