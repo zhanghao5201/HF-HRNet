@@ -1,5 +1,5 @@
 # HF-HRNet
-About The official repo for paper: HF-HRNet: A Simple Hardware Friendly High-Resolution Network.
+About the repo for paper: HF-HRNet: A Simple Hardware Friendly High-Resolution Network.
 
 Paper is available at [HF-HRNet](https://ieeexplore.ieee.org/abstract/document/10472506/)
 
