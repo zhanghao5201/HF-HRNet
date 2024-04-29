@@ -18,17 +18,6 @@ To overcome these limitations, we present a simple Hardware-Friendly Lightweight
 Extensive experiments are conducted on human pose estimation (COCO, MPII) and semantic segmentation (Cityscapes), resulting in a better trade-off between inference speed and accuracy on both NPUs and GPUs.
 It is noteworthy that on the COCO test-dev set, HF-HRNet-30 outperforms Dite-HRNet-30 and Lite-HRNet-30 by 1.9 AP and 2.8 AP, respectively, while running about 13 times faster and 9 times faster on NPUs, respectively.
 
-# **Visualization Results**:
-The trade-off between inference time and AP on COCO val set for several SOTA models. (a) Delay Time (ms) w/ AP tested on NPU (RK3588). (b) Samples Per Second (SPS) w/ AP tested on GPU (NVIDIA A100-SXM-80GB). 
-Note that ``Dynamic Kernel Aggregation" cannot be supported by NPU, we replace it with Squeeze-and-Excitation block when we measure the delay time on NPU.
-<p align="center">
-    <img src='fig/npusudu.jpg' width=900/>
-    <figcaption>(a)</figcaption>
-    <img src='fig/gpusudu.jpg' width=900/>
-    <figcaption>(b)</figcaption>
-</p>
-
-
 ### Prepare datasets
 
 It is recommended to symlink the dataset root to `$HF_HRNET/data`.
