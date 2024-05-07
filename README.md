@@ -6,7 +6,7 @@ Paper is available at [HF-HRNet](https://ieeexplore.ieee.org/abstract/document/1
 # **News**
 2023/09/18 Code is open source.
 
-2024/03/05 Paper is accepted as a Transactions Paper for publication with no further changes in an upcoming issue of the IEEE Transactions on Circuits and Systems for Video Technology.
+2024/03/05 Paper is accepted as a Transactions Paper for publication in IEEE Transactions on Circuits and Systems for Video Technology.
 
 
 # **Abstract**:
